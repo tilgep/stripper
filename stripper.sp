@@ -4,7 +4,7 @@
 #include <sourcemod>
 #include <regex>
 
-#define PLUGIN_VERSION "1.0.0"
+#define PLUGIN_VERSION "1.1.0"
 
 public Plugin myinfo =
 {
@@ -48,6 +48,7 @@ enum struct Block
     ArrayList replace;      // Modify
     ArrayList del;          // Modify
     ArrayList insert;       // Add/Modify
+    bool hasClassname;      // Ensures that an add block has a classname set
 
     void Init()
     {
@@ -61,6 +62,7 @@ enum struct Block
 
     void Clear()
     {
+        this.hasClassname = false;
         this.mode = Mode_None;
         this.submode = SubMode_None;
         this.match.Clear();
@@ -70,7 +72,9 @@ enum struct Block
     }
 }
 
+char file[PLATFORM_MAX_PATH];
 Block prop; // Global current stripper block
+int section;
 
 public void OnPluginStart()
 {
@@ -79,18 +83,16 @@ public void OnPluginStart()
 
 public void OnMapInit(const char[] mapName)
 {
-    char buffer[PLATFORM_MAX_PATH];
-
     // Parse global filters
-    BuildPath(Path_SM, buffer, sizeof(buffer), "configs/stripper/global_filters.cfg");
+    BuildPath(Path_SM, file, sizeof(file), "configs/stripper/global_filters.cfg");
     
-    ParseFile(buffer);
+    ParseFile();
 
     // Now parse map config
-    strcopy(buffer, sizeof(buffer), mapName);
-    BuildPath(Path_SM, buffer, sizeof(buffer), "configs/stripper/maps/%s.cfg", buffer);
+    strcopy(file, sizeof(file), mapName);
+    BuildPath(Path_SM, file, sizeof(file), "configs/stripper/maps/%s.cfg", file);
 
-    ParseFile(buffer);
+    ParseFile();
 }
 
 /**
@@ -98,41 +100,58 @@ public void OnMapInit(const char[] mapName)
  * 
  * @param path          Path to parse from
  */
-public void ParseFile(char[] path)
+public void ParseFile()
 {
     char error[128];
     int line = 0;
     int col = 0;
+    section = 0;
 
     prop.Clear();
 
     SMCParser parser = SMC_CreateParser();
     SMC_SetReaders(parser, Config_NewSection, Config_KeyValue, Config_EndSection);
 
-    SMCError result = SMC_ParseFile(parser, path, line, col);
+    SMCError result = SMC_ParseFile(parser, file, line, col);
     delete parser;
 
     if (result != SMCError_Okay) 
     {
         SMC_GetErrorString(result, error, sizeof(error));
-        LogError("%s on line %d, col %d of %s", error, line, col, path);
+        LogError("%s on line %d, col %d of %s", error, line, col, file);
     }
 }
 
 public SMCResult Config_NewSection(SMCParser smc, const char[] name, bool opt_quotes) 
 {
+    section++;
     if (StrEqual(name, "filter:", false) || StrEqual(name, "remove:", false))
     {
+        if(prop.mode != Mode_None)
+        {
+            LogError("Found 'filter' block while inside another block at section %d in file '%s'", section, file);
+        }
+
         prop.Clear();
         prop.mode = Mode_Filter;
     }
     else if (StrEqual(name, "add:", false))
     {
+        if(prop.mode != Mode_None)
+        {
+            LogError("Found 'add' block while inside another block at section %d in file '%s'", section, file);
+        }
+
         prop.Clear();
         prop.mode = Mode_Add;
     }
     else if (StrEqual(name, "modify:", false))
     {
+        if(prop.mode != Mode_None)
+        {
+            LogError("Found 'modify' block while inside another block at section %d in file '%s'", section, file);
+        }
+
         prop.Clear();
         prop.mode = Mode_Modify;
     }
@@ -182,6 +201,9 @@ public SMCResult Config_KeyValue(SMCParser smc, const char[] key, const char[] v
         }
         case Mode_Add:
         {
+            // Adding an entity without a classname will crash the server
+            if(StrEqual(key, "classname", false)) prop.hasClassname = true;
+
             prop.insert.PushArray(kv);
         }
         case Mode_Modify:
@@ -228,7 +250,14 @@ public SMCResult Config_EndSection(SMCParser smc)
         {
             if (prop.insert.Length > 0)
             {
-                RunAddFilter();
+                if(prop.hasClassname)
+                {
+                    RunAddFilter();
+                }
+                else
+                {
+                    LogError("Add block with no classname found at section %d in file '%s'", section, file);
+                }
             }
 
             prop.mode = Mode_None;
