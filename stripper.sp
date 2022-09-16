@@ -7,7 +7,7 @@
 public Plugin myinfo =
 {
     name		= "Stripper:Source (SP edition)",
-    version		= "1.2.0",
+    version		= "1.2.1",
     description	= "Stripper:Source functionality in a Sourcemod plugin",
     author		= "tilgep, Stripper:Source by BAILOPAN",
     url			= "https://forums.alliedmods.net/showthread.php?t=339448"
@@ -90,7 +90,7 @@ public Action Command_Dump(int client, int args)
 
     BuildPath(Path_SM, buf2, PLATFORM_MAX_PATH, "configs/stripper/dumps");
     
-    if(!DirExists(buf1)) CreateDirectory(buf1);
+    if(!DirExists(buf2)) CreateDirectory(buf2);
 
     do
     {
