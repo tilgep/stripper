@@ -7,7 +7,7 @@
 public Plugin myinfo =
 {
     name		= "Stripper:Source (SP edition)",
-    version		= "1.2.1",
+    version		= "1.3.0",
     description	= "Stripper:Source functionality in a Sourcemod plugin",
     author		= "tilgep, Stripper:Source by BAILOPAN",
     url			= "https://forums.alliedmods.net/showthread.php?t=339448"
@@ -164,7 +164,6 @@ public void OnMapInit(const char[] mapName)
  */
 public void ParseFile()
 {
-    char error[128];
     int line, col;
     section = 0;
 
@@ -176,10 +175,18 @@ public void ParseFile()
     SMCError result = SMC_ParseFile(parser, file, line, col);
     delete parser;
 
-    if(result != SMCError_Okay)
+    if(result != SMCError_Okay && result != SMCError_StreamOpen)
     {
-        SMC_GetErrorString(result, error, sizeof(error));
-        LogError("%s on line %d, col %d of %s", error, line, col, file);
+        if(result == SMCError_StreamOpen)
+        {
+            LogMessage("Failed to open stripper config \"%s\"", file);
+        }
+        else
+        {
+            char error[128];
+            SMC_GetErrorString(result, error, sizeof(error));
+            LogError("%s on line %d, col %d of %s", error, line, col, file);
+        }
     }
 }
 
