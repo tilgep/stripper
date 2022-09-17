@@ -71,6 +71,7 @@ enum struct Block
 }
 
 char file[PLATFORM_MAX_PATH];
+ConVar fileLowercase;
 Block prop; // Global current stripper block
 int section;
 
@@ -79,6 +80,9 @@ public void OnPluginStart()
     prop.Init();
 
     RegAdminCmd("stripper_dump", Command_Dump, ADMFLAG_ROOT, "Writes all of the map entity properties to a file in configs/stripper/dumps/");
+
+    fileLowercase = CreateConVar("stripper_file_lowercase", "0", "Whether to load map config filenames as lower case", _, true, 0.0, true, 1.0);
+    AutoExecConfig(true, "stripper");
 }
 
 public Action Command_Dump(int client, int args)
@@ -141,6 +145,13 @@ public void OnMapInit(const char[] mapName)
 
     // Now parse map config
     strcopy(file, sizeof(file), mapName);
+
+    if(fileLowercase.BoolValue)
+    {
+        for(int i = 0; file[i]; i++)
+            file[i] = CharToLower(file[i]);
+    }
+
     BuildPath(Path_SM, file, sizeof(file), "configs/stripper/maps/%s.cfg", file);
 
     ParseFile();
