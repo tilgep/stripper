@@ -94,7 +94,7 @@ public Action Command_Dump(int client, int args)
 
     BuildPath(Path_SM, buf2, PLATFORM_MAX_PATH, "configs/stripper/dumps");
     
-    if(!DirExists(buf2)) CreateDirectory(buf2);
+    if(!DirExists(buf2)) CreateDirectory(buf2, FPERM_O_READ|FPERM_O_EXEC|FPERM_G_READ|FPERM_G_EXEC|FPERM_U_READ|FPERM_U_WRITE|FPERM_U_EXEC);
 
     do
     {
