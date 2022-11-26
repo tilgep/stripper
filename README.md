@@ -1,7 +1,7 @@
 A rewrite of Stripper:Source into Sourcepawn  
 It can read stripper configs with no changes necessary  
 
-### **Requires Sourcemod 1.12.6922+**
+### **Requires at least Sourcemod 1.11.6919 for entity lump access**
 
 Info on stripper: https://www.bailopan.net/stripper/  
 Forum thread for this plugin: https://forums.alliedmods.net/showthread.php?t=339448
