@@ -1,5 +1,7 @@
 A rewrite of Stripper:Source into Sourcepawn  
-It can read stripper configs with no changes necessary  
+It can read stripper configs with no changes necessary*  
+  
+*See [this issue report](https://github.com/tilgep/stripper/issues/2) for an edge case  
 
 ### **Requires at least Sourcemod 1.11.6919 for entity lump access**
 
