@@ -9,7 +9,7 @@ public Plugin myinfo =
     name		= "Stripper:Source (SP edition)",
     version		= "1.3.0",
     description	= "Stripper:Source functionality in a Sourcemod plugin",
-    author		= "tilgep, Stripper:Source by BAILOPAN",
+    author		= "Original Author: BAILOPAN. Ported to SM by: tilgep. Edited by: Lerrdy, .Rushaway",
     url			= "https://forums.alliedmods.net/showthread.php?t=339448"
 }
 
@@ -71,6 +71,8 @@ enum struct Block
 }
 
 char file[PLATFORM_MAX_PATH];
+bool g_bConfigLoaded = false;
+bool g_bConfigError = false;
 ConVar fileLowercase;
 Block prop; // Global current stripper block
 int section;
@@ -80,9 +82,30 @@ public void OnPluginStart()
     prop.Init();
 
     RegAdminCmd("stripper_dump", Command_Dump, ADMFLAG_ROOT, "Writes all of the map entity properties to a file in configs/stripper/dumps/");
+    RegAdminCmd("sm_stripper", Command_Stripper, ADMFLAG_BAN, "Prints out if the current map has a loaded stripper file");
 
     fileLowercase = CreateConVar("stripper_file_lowercase", "0", "Whether to load map config filenames as lower case", _, true, 0.0, true, 1.0);
     AutoExecConfig(true, "stripper");
+}
+
+public Action Command_Stripper(int client, int args)
+{
+    if (g_bConfigLoaded)
+    {
+        ReplyToCommand(client, "[Strippper] The current map has a loaded stripper config.");
+    }
+    else if (g_bConfigError)
+    {
+        ReplyToCommand(client, "[Strippper] The current stripper config contains error(s)");
+        if(CheckCommandAccess(client, "sm_stripper", ADMFLAG_ROOT)) ReplyToCommand(client, "[Strippper] Check (%s)", file);
+    }
+    else
+    {
+        ReplyToCommand(client, "[Strippper] The current map did not load a stripper config.");
+        if(CheckCommandAccess(client, "sm_stripper", ADMFLAG_ROOT)) ReplyToCommand(client, "[Strippper] No file found: (%s)", file);
+    }
+        
+    return Plugin_Handled;
 }
 
 public Action Command_Dump(int client, int args)
@@ -138,6 +161,9 @@ public Action Command_Dump(int client, int args)
 
 public void OnMapInit(const char[] mapName)
 {
+    g_bConfigLoaded = false;
+    g_bConfigError = false;
+
     // Parse global filters
     BuildPath(Path_SM, file, sizeof(file), "configs/stripper/global_filters.cfg");
 
@@ -175,15 +201,22 @@ public void ParseFile()
     SMCError result = SMC_ParseFile(parser, file, line, col);
     delete parser;
 
+    if(result == SMCError_Okay && result != SMCError_StreamOpen)
+    {
+        g_bConfigLoaded = true;
+    }
+
     if(result != SMCError_Okay && result != SMCError_StreamOpen)
     {
         if(result == SMCError_StreamOpen)
         {
+            g_bConfigLoaded = false;
             LogMessage("Failed to open stripper config \"%s\"", file);
         }
         else
         {
             char error[128];
+            g_bConfigError = true;
             SMC_GetErrorString(result, error, sizeof(error));
             LogError("%s on line %d, col %d of %s", error, line, col, file);
         }
