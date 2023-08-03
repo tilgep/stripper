@@ -7,7 +7,7 @@
 public Plugin myinfo =
 {
     name		= "Stripper:Source (SP edition)",
-    version		= "1.3.0",
+    version		= "1.3.1",
     description	= "Stripper:Source functionality in a Sourcemod plugin",
     author		= "tilgep, Stripper:Source by BAILOPAN",
     url			= "https://forums.alliedmods.net/showthread.php?t=339448"
@@ -229,6 +229,14 @@ public SMCResult Config_NewSection(SMCParser smc, const char[] name, bool opt_qu
         else if(!strcmp(name, "replace:", false))	prop.submode = SubMode_Replace;
         else if(!strcmp(name, "delete:", false))	prop.submode = SubMode_Delete;
         else if(!strcmp(name, "insert:", false))	prop.submode = SubMode_Insert;
+        else
+        {
+            LogError("Found invalid section '%s' in modify block at section %d in file '%s'", name, section, file);
+        }
+    }
+    else
+    {
+        LogError("Found invalid section name '%s' at section %d in file '%s'", name, section, file);
     }
 
     return SMCParse_Continue;
